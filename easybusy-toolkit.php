@@ -129,3 +129,113 @@ function auto_generate_insert($table_name,$source,$eskape=null)
                         else
                                 return false;
                                 }
+                                
+# recursively remove a directory
+function rrmdir($dir) {
+   if (is_dir($dir)) {
+     $objects = scandir($dir);
+     foreach ($objects as $object) {
+       if ($object != "." && $object != "..") {
+         if (filetype($dir."/".$object) == "dir") rrmdir($dir."/".$object); else unlink($dir."/".$object);
+       }
+     }
+     reset($objects);
+     rmdir($dir);
+   }
+ }
+
+function extractor($source,$destination){
+		$zip = new ZipArchive;
+	$open = $zip->open($source, ZIPARCHIVE::CHECKCONS);
+//	 If the archive is broken(or just another file renamed to *.zip) the function will return error on httpd under windows, so it's good to check if the archive is ok with ZIPARCHIVE::CHECKCONS
+	 if ($open === TRUE) {
+	 if(!$zip->extractTo($destination)) {
+	 die ("Error during extracting");
+	 }
+	 $zip->close();
+}
+ }
+ 
+    function smartCopy($source, $dest, $options=array('folderPermission'=>0755,'filePermission'=>0755))
+    {
+        $result=false;
+       
+        if (is_file($source)) {
+            if ($dest[strlen($dest)-1]=='/') {
+                if (!file_exists($dest)) {
+                    cmfcDirectory::makeAll($dest,$options['folderPermission'],true);
+                }
+                $__dest=$dest."/".basename($source);
+            } else {
+                $__dest=$dest;
+            }
+            $result=copy($source, $__dest);
+            chmod($__dest,$options['filePermission']);
+           
+        } elseif(is_dir($source)) {
+            if ($dest[strlen($dest)-1]=='/') {
+                if ($source[strlen($source)-1]=='/') {
+                    //Copy only contents
+                } else {
+                    //Change parent itself and its contents
+                    $dest=$dest.basename($source);
+                    @mkdir($dest);
+                    chmod($dest,$options['filePermission']);
+                }
+            } else {
+                if ($source[strlen($source)-1]=='/') {
+                    //Copy parent directory with new name and all its content
+                    @mkdir($dest,$options['folderPermission']);
+                    chmod($dest,$options['filePermission']);
+                } else {
+                    //Copy parent directory with new name and all its content
+                    @mkdir($dest,$options['folderPermission']);
+                    chmod($dest,$options['filePermission']);
+                }
+            }
+
+            $dirHandle=opendir($source);
+            while($file=readdir($dirHandle))
+            {
+                if($file!="." && $file!="..")
+                {
+                     if(!is_dir($source."/".$file)) {
+                        $__dest=$dest."/".$file;
+                    } else {
+                        $__dest=$dest."/".$file;
+                    }
+                    //echo "$source/$file ||| $__dest<br />";
+                    $result=smartCopy($source."/".$file, $__dest, $options);
+                }
+            }
+            closedir($dirHandle);
+           
+        } else {
+            $result=false;
+        }
+        return $result;
+    }
+
+
+function import_db_file($sql_file_adress){
+	$pdo_driver=$_POST["db_driver"];
+	$dbhost=$_POST["db_host"];
+	$dbname=$_POST["db_name"];
+	$dsn="$pdo_driver:host=$dbhost;dbname=$dbname";
+	$user=$_POST["db_username"];
+	$password=$_POST["db_password"];
+	$db = new PDO($dsn, $user, $password);
+	$db->exec("SET NAMES 'utf8';");
+	$sql = file_get_contents($sql_file_adress);
+	$qr = $db->exec($sql);
+}
+
+
+function replace_in_file($search_str,$replace_str,$file_address){
+	// read the file
+	$file = file_get_contents($file_address);
+	// replace the data
+	$file = str_replace($search_str, $replace_str, $file);
+	// write the file
+	file_put_contents($file_address, $file);
+}
